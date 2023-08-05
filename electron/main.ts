@@ -6,6 +6,7 @@ import {
   shell,
   dialog,
 } from "electron";
+import { autoUpdater } from "electron-updater";
 import path from "node:path";
 import fetch from "node-fetch";
 
@@ -15,15 +16,6 @@ import config from "./config";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { mouse } = require("@nut-tree/nut-js");
 
-// The built directory structure
-//
-// ├─┬─┬ dist
-// │ │ └── index.html
-// │ │
-// │ ├─┬ dist-electron
-// │ │ ├── main.js
-// │ │ └── preload.js
-// │
 process.env.DIST = path.join(__dirname, "../dist");
 process.env.PUBLIC = app.isPackaged
   ? process.env.DIST
@@ -40,6 +32,7 @@ function createWindow() {
     icon: path.join("autoblox.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      devTools: false,
     },
     height: 400,
     width: 650,
@@ -52,6 +45,15 @@ function createWindow() {
 
   cashier = new Cashier(win);
 
+  // updating
+
+  win.once("ready-to-show", () => {
+    autoUpdater.checkForUpdatesAndNotify();
+  });
+
+  // Disable Refreshing
+  win.removeMenu();
+
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
@@ -61,7 +63,7 @@ function createWindow() {
 }
 
 // ------------
-// START
+// IPC START
 // ------------
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,8 +91,8 @@ ipcMain.on("handleGetKey", () => {
   shell.openExternal(`${config.website}/getkey`);
 });
 
-ipcMain.on("showError", (_, title: string, message: string) => {
-  dialog.showErrorBox(title, message);
+ipcMain.on("app/openUrl", (_, url: string) => {
+  shell.openExternal(url);
 });
 
 ipcMain.on("app/close", () => {
@@ -120,20 +122,22 @@ ipcMain.handle("validateKey", async (_, key: string) => {
       }),
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: any = await res.json();
 
     if (data.success === true) {
       return true;
     }
 
-    dialog.showErrorBox(
-      "Invalid Key",
+    win?.webContents.send(
+      "app/error",
       "Invalid Key Provided, Get a Key From autoblox.xyz/getkey"
     );
+
     return false;
   } catch (err) {
-    dialog.showErrorBox(
-      "Internal Server Error",
+    win?.webContents.send(
+      "app/error",
       "Uh Oh, There Was a Internal Server Error, Join Our Discord https://discord.gg/2qu8bh3x9y For Support"
     );
     console.error(err);
@@ -146,7 +150,7 @@ ipcMain.handle("app/getVersion", () => {
 });
 
 // ------------
-// END
+// IPC END
 // ------------
 
 app.on("window-all-closed", () => {
@@ -154,6 +158,49 @@ app.on("window-all-closed", () => {
   app.quit();
 });
 
-app.whenReady().then(() => {
-  createWindow();
+// Handle Error
+process.on("uncaughtException", (error) => {
+  console.error("Exception:", error);
+
+  dialog.showErrorBox("Unexpected Error", error.message);
+  app.exit(1);
 });
+
+autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.on("update-downloaded", (info) => {
+  if (win) {
+    dialog
+      .showMessageBox(win, {
+        type: "info",
+        title: "Application Update",
+        message:
+          process.platform === "win32"
+            ? (info.releaseNotes as string)
+            : (info.releaseName as string),
+        detail:
+          "A new version has been downloaded. The application will be restarted after closing this window.",
+      })
+      .then(() => {
+        autoUpdater.quitAndInstall();
+      });
+  }
+});
+
+// Only Allow 1 Instance
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
+
+  app.whenReady().then(() => {
+    createWindow();
+  });
+}

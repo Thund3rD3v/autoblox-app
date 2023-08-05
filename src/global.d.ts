@@ -6,8 +6,6 @@ declare namespace api {
   function startAutomation(key: string, name: string, data: any): void;
   function stopAutomation(name: string): void;
 
-  function showError(title: string, message: string): void;
-
   function onStart(callback: (name: string) => void): void;
   function onStop(callback: (name: string) => void): void;
 
@@ -18,7 +16,9 @@ declare namespace api {
   }
 
   namespace app {
+    function onError(callback: (message: string) => void): void;
     function getVersion(): Promise<string>;
+    function openUrl(url: string): void;
     function close(): void;
   }
 }

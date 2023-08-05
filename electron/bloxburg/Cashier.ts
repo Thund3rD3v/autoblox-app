@@ -1,9 +1,10 @@
-import { IBloxburgCashier } from "Interfaces";
-import { BrowserWindow, dialog } from "electron";
+import { BrowserWindow, app, dialog } from "electron";
+import fs from "fs";
 import path from "node:path";
-import config from "../config";
 import fetch from "node-fetch";
-import fs from "fs/promises";
+
+import { IBloxburgCashier } from "Interfaces";
+import config from "../config";
 
 const {
   mouse,
@@ -11,6 +12,7 @@ const {
   straightTo,
   Region,
   screen,
+  FileType,
   // eslint-disable-next-line @typescript-eslint/no-var-requires
 } = require("@nut-tree/nut-js");
 
@@ -25,7 +27,13 @@ class Cashier {
     this.win = win;
   }
 
-  async start(key: string, positions: IBloxburgCashier) {
+  async start(
+    key: string,
+    data: {
+      positions: IBloxburgCashier;
+      chanceOfMistake: number;
+    }
+  ) {
     if (!/^\s*$/.test(key)) {
       if (this.overlay === null) {
         this.overlay = new BrowserWindow({
@@ -62,11 +70,15 @@ class Cashier {
             await new Promise<void>((resolve) => setTimeout(resolve, 1000));
           }
 
+          // run final animation
+          this.overlay?.webContents.send("overlay/update", num);
+          await new Promise<void>((resolve) => setTimeout(resolve, 250));
+
           this.overlay?.close();
           this.overlay = null;
 
           this.started = true;
-          this.main(key, positions);
+          this.main(key, data.positions, data.chanceOfMistake);
           this.win.webContents.send("start", "bloxburg/cashier");
         });
       }
@@ -75,42 +87,62 @@ class Cashier {
     }
   }
 
-  async main(key: string, positions: IBloxburgCashier) {
+  async main(
+    key: string,
+    positions: IBloxburgCashier,
+    chanceOfMistake: number
+  ) {
     try {
       while (this.started) {
-        // Take Screen Shot Parms: (Left, Right, Width, Height)
-        await screen.captureRegion(
-          path.resolve(__dirname, "../screen.png"),
-          new Region(
-            positions.topLeft.position.x,
-            positions.topLeft.position.y,
-            positions.bottomRight.position.x - positions.topLeft.position.x,
-            positions.bottomRight.position.y - positions.topLeft.position.y
-          )
-        );
+        if (chanceOfMistake / 100 >= Math.random()) {
+          await mouse.move(straightTo(positions["fries"].position));
+          await mouse.click(Button.LEFT);
+        } else {
+          // Take Screen Shot Parms: (Left, Right, Width, Height)
+          await screen.captureRegion(
+            "autoblox-screen",
+            new Region(
+              positions.topLeft.position.x,
+              positions.topLeft.position.y,
+              positions.bottomRight.position.x - positions.topLeft.position.x,
+              positions.bottomRight.position.y - positions.topLeft.position.y
+            ),
+            FileType.PNG,
+            app.getPath("temp")
+          );
 
-        // Read Screen Shot
-        const bufferData = await fs.readFile(
-          path.resolve(__dirname, "../screen.png")
-        );
+          // Read Screen Shot
+          const bufferData = await fs.readFileSync(
+            path.join(app.getPath("temp"), "autoblox-screen.png")
+          );
 
-        const body = new FormData();
-        const blob = new Blob([bufferData]);
-        body.set("key", key);
-        body.set("image", blob, "image.png");
+          const body = new FormData();
+          const blob = new Blob([bufferData]);
+          body.set("key", key);
+          body.set("image", blob, "image.png");
 
-        const res = await fetch(`${config.website}/bloxburg/cashier`, {
-          method: "POST",
-          body,
-        });
+          const res = await fetch(`${config.website}/bloxburg/cashier`, {
+            method: "POST",
+            body,
+          });
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data: any = await res.json();
+          if (res.status === 401) {
+            this.win?.webContents.send("keyExpire");
+            this.stop();
+            break;
+          }
 
-        const orders: (keyof IBloxburgCashier)[] = data.data;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const data: any = await res.json();
 
-        for (const order of orders) {
-          await mouse.move(straightTo(positions[order].position));
+          const orders: (keyof IBloxburgCashier)[] = data.data;
+
+          for (const order of orders) {
+            await mouse.move(straightTo(positions[order].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          await mouse.move(straightTo(positions["done"].position));
           await mouse.click(Button.LEFT);
         }
 

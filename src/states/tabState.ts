@@ -2,7 +2,7 @@ import { atom } from "recoil";
 
 const tabState = atom({
   key: "tabState", // unique ID (with respect to other atoms/selectors)
-  default: "dashboard",
+  default: "key",
 });
 
 export default tabState;

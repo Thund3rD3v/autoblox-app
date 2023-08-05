@@ -6,6 +6,8 @@ import keyState from "@/states/keyState";
 import tabState from "@/states/tabState";
 import Layout from "@/components/Layout";
 
+import LogoSvg from "@/assets/logo.svg";
+
 export default function Keypage() {
   const [key, setKey] = useState("");
   const setGlobalKey = useSetRecoilState(keyState);
@@ -23,9 +25,9 @@ export default function Keypage() {
           }
         }}
         className="px-32 py-12 text-center">
-        <img className="mx-auto" width={240} src="/logo.svg" alt="logo" />
+        <img className="mx-auto" width={240} src={LogoSvg} alt="logo" />
         <Input
-          className="mt-6 bg-zinc-900 border-zinc-700 ring-offset-zinc-700 text-white"
+          className="mt-6"
           placeholder="key"
           value={key}
           onChange={(ev) => {

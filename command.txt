@@ -1,0 +1,1 @@
+SignTool sign /fd SHA256 /a /f AutoBlox.pfx AutoBlox-Installer.exe

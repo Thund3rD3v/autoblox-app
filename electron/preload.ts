@@ -11,9 +11,6 @@ contextBridge.exposeInMainWorld("api", {
 
   stopAutomation: (name: string) => ipcRenderer.send("stop", name),
 
-  showError: (title: string, message: string) =>
-    ipcRenderer.send("showError", title, message),
-
   onStart: (callback: (name: string) => void) => {
     ipcRenderer.on("start", (_event, name) => {
       callback(name);
@@ -41,7 +38,13 @@ contextBridge.exposeInMainWorld("api", {
   },
 
   app: {
+    onError: (callback: (message: string) => void) => {
+      ipcRenderer.on("app/error", (_event, message) => {
+        callback(message);
+      });
+    },
     getVersion: () => ipcRenderer.invoke("app/getVersion"),
+    openUrl: (url: string) => ipcRenderer.send("app/openUrl", url),
     close: () => ipcRenderer.send("app/close"),
   },
 });

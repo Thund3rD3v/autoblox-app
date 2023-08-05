@@ -6,25 +6,25 @@ import DashboardPage from "@/views/DashboardPage";
 import CashierPage from "@/views/bloxburg/Cashier";
 import { useEffect, useState } from "react";
 import keyState from "./states/keyState";
+import { toast } from "react-hot-toast";
 
 function App() {
   const [currentTab, setCurrentTab] = useRecoilState(tabState);
   const setKey = useSetRecoilState(keyState);
 
-  const [version, setVersion] = useState("0.0.0");
-
-  console.log(version);
+  const [version, setVersion] = useState("1.0.0");
 
   useEffect(() => {
     async function getVersion() {
       setVersion(await api.app.getVersion());
     }
 
+    api.app.onError((message) => {
+      toast.error(message);
+    });
+
     api.onKeyExpire(() => {
-      api.showError(
-        "Key Expired",
-        "Your Key Has Expired, Get a Key From autoblox.xyz/getkey"
-      );
+      toast.error("Your Key Has Expired, Get a Key From autoblox.xyz/getkey");
       setKey("");
       setCurrentTab("key");
     });
@@ -36,7 +36,7 @@ function App() {
 
   return (
     <>
-      <nav className="fixed flex justify-between items-center w-full px-4 py-2 border-b border-b-zinc-600 bg-neutral-800">
+      <nav className="fixed flex justify-between items-center w-full px-4 py-2 border-b border-b-zinc-600 bg-neutral-800 z-50">
         <span className="text-white font-semibold text-sm">
           AutoBlox <small>v{version}</small>
         </span>

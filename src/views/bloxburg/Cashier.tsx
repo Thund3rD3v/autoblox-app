@@ -4,7 +4,11 @@ import PositionCard from "@/components/PositionCard";
 import { Button } from "@/components/ui/button";
 import { useRecoilValue, useSetRecoilState } from "recoil";
 import tabState from "@/states/tabState";
+import keyState from "@/states/keyState";
 import Layout from "@/components/Layout";
+
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 import TOP_LEFT from "@/assets/bloxburg/cashier/top-left.png";
 import BOTTOM_RIGHT from "@/assets/bloxburg/cashier/bottom-right.png";
@@ -14,11 +18,13 @@ import BURGER3 from "@/assets/bloxburg/cashier/burger3.png";
 import FRIES from "@/assets/bloxburg/cashier/fries.png";
 import SODA from "@/assets/bloxburg/cashier/soda.png";
 import DONE from "@/assets/bloxburg/cashier/done.png";
-import keyState from "@/states/keyState";
+import { toast } from "react-hot-toast";
 
 export default function CashierPage() {
+  const setTab = useSetRecoilState(tabState);
   const key = useRecoilValue(keyState);
 
+  const [started, setStarted] = useState(false);
   const [positions, setPositions] = useState<IBloxburgCashier>({
     topLeft: { status: "unset", position: { x: 0, y: 0 } },
     bottomRight: { status: "unset", position: { x: 0, y: 0 } },
@@ -29,9 +35,47 @@ export default function CashierPage() {
     fries: { status: "unset", position: { x: 0, y: 0 } },
     done: { status: "unset", position: { x: 0, y: 0 } },
   });
-  const [started, setStarted] = useState(false);
+  const [chanceOfMistake, setChanceOfMistake] = useState(10);
 
-  const setTab = useSetRecoilState(tabState);
+  function handleReset() {
+    setPositions({
+      topLeft: { status: "unset", position: { x: 0, y: 0 } },
+      bottomRight: { status: "unset", position: { x: 0, y: 0 } },
+      burger1: { status: "unset", position: { x: 0, y: 0 } },
+      burger2: { status: "unset", position: { x: 0, y: 0 } },
+      burger3: { status: "unset", position: { x: 0, y: 0 } },
+      soda: { status: "unset", position: { x: 0, y: 0 } },
+      fries: { status: "unset", position: { x: 0, y: 0 } },
+      done: { status: "unset", position: { x: 0, y: 0 } },
+    });
+    setChanceOfMistake(10);
+  }
+
+  async function handleStart() {
+    const complete = Object.keys(positions).every((key) => {
+      const value = positions[key as keyof IBloxburgCashier]; // Use type assertion to get the correct value type.
+      if (value.status != "set") {
+        return false;
+      }
+
+      return true;
+    });
+
+    if (complete) {
+      api.startAutomation(key, "bloxburg/cashier", {
+        positions,
+        chanceOfMistake,
+      });
+    } else {
+      toast.error(
+        "You have not provided positions for all the items. Please make sure to specify the positions for each item in order to start."
+      );
+    }
+  }
+
+  async function handleStop() {
+    api.stopAutomation("bloxburg/cashier");
+  }
 
   useEffect(() => {
     api.onStart((name) => {
@@ -47,55 +91,30 @@ export default function CashierPage() {
     });
   }, []);
 
-  function handleReset() {
-    setPositions({
-      topLeft: { status: "unset", position: { x: 0, y: 0 } },
-      bottomRight: { status: "unset", position: { x: 0, y: 0 } },
-      burger1: { status: "unset", position: { x: 0, y: 0 } },
-      burger2: { status: "unset", position: { x: 0, y: 0 } },
-      burger3: { status: "unset", position: { x: 0, y: 0 } },
-      soda: { status: "unset", position: { x: 0, y: 0 } },
-      fries: { status: "unset", position: { x: 0, y: 0 } },
-      done: { status: "unset", position: { x: 0, y: 0 } },
-    });
-  }
-
-  async function handleStart() {
-    const complete = Object.keys(positions).every((key) => {
-      const value = positions[key as keyof IBloxburgCashier]; // Use type assertion to get the correct value type.
-      if (value.status != "set") {
-        return false;
-      }
-
-      return true;
-    });
-
-    if (complete) {
-      api.startAutomation(key, "bloxburg/cashier", positions);
-    } else {
-      api.showError(
-        "Incomplete Item Positions",
-        "You have not provided positions for all the items. Please make sure to specify the positions for each item in order to start."
-      );
-    }
-  }
-
-  async function handleStop() {
-    api.stopAutomation("bloxburg/cashier");
-  }
-
   return (
     <Layout>
       <div className="px-12 pt-2 pb-6">
-        {!started && (
+        <div className="flex justify-between">
+          {!started && (
+            <button
+              onClick={() => {
+                setTab("dashboard");
+              }}
+              className="mb-2 cursor-pointer text-zinc-300 font-medium underline">
+              Back
+            </button>
+          )}
+
+          {/*
           <button
+            className="text-blue-400 underline"
             onClick={() => {
-              setTab("dashboard");
-            }}
-            className="mb-2 cursor-pointer text-zinc-300 font-medium underline">
-            Back
+              api.app.openUrl("");
+            }}>
+            How to use?
           </button>
-        )}
+          */}
+        </div>
 
         <div className="grid grid-cols-4 gap-4  text-center">
           <PositionCard
@@ -147,7 +166,28 @@ export default function CashierPage() {
             setPositions={setPositions}
           />
         </div>
-        <div className="mt-8 flex items-center gap-2">
+
+        <div className="mt-4">
+          <Label className="text-white text-xs" htmlFor="chance_of_mistake">
+            (%) Chance Of Mistake
+          </Label>
+          <Input
+            disabled={started}
+            id="chance_of_mistake"
+            type="number"
+            placeholder="(%) chance of mistake"
+            value={chanceOfMistake}
+            min={0}
+            max={100}
+            onChange={(ev) => {
+              // constrain between 0 and 100
+              const parsed = parseInt(ev.target.value);
+              setChanceOfMistake(Math.min(Math.max(parsed, 0), 100));
+            }}
+          />
+        </div>
+
+        <div className="mt-2 flex items-center gap-2">
           {!started ? (
             <Button onClick={handleStart} className="w-full">
               Start
