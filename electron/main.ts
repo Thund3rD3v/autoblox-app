@@ -7,11 +7,10 @@ import {
   dialog,
 } from "electron";
 import { autoUpdater } from "electron-updater";
-import path from "node:path";
-import fetch from "node-fetch";
-
 import Cashier from "./bloxburg/Cashier";
+import fetch from "node-fetch";
 import config from "./config";
+import path from "node:path";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { mouse } = require("@nut-tree/nut-js");
@@ -44,12 +43,6 @@ function createWindow() {
   });
 
   cashier = new Cashier(win);
-
-  // updating
-
-  win.once("ready-to-show", () => {
-    autoUpdater.checkForUpdatesAndNotify();
-  });
 
   // Disable Refreshing
   win.removeMenu();
@@ -166,7 +159,6 @@ process.on("uncaughtException", (error) => {
   app.exit(1);
 });
 
-autoUpdater.autoInstallOnAppQuit = true;
 autoUpdater.on("update-downloaded", (info) => {
   if (win) {
     dialog
@@ -202,5 +194,8 @@ if (!gotTheLock) {
 
   app.whenReady().then(() => {
     createWindow();
+
+    // updating (DONT CHANGE TO checkForUpdatesAndNotify)
+    autoUpdater.checkForUpdates();
   });
 }

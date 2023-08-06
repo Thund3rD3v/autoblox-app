@@ -1,10 +1,9 @@
 import { BrowserWindow, app, dialog } from "electron";
-import fs from "fs";
-import path from "node:path";
-import fetch from "node-fetch";
-
 import { IBloxburgCashier } from "Interfaces";
 import config from "../config";
+import fetch from "node-fetch";
+import path from "node:path";
+import fs from "fs";
 
 const {
   mouse,

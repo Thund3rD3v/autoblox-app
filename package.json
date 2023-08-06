@@ -1,7 +1,7 @@
 {
   "name": "autoblox",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "AutoBlox",
   "description": "Welcome to AutoBlox, efficient Roblox Automation solutions that takes subtlety and safety to heart. No scripts or injectors needed here, just a smooth and worry-free experience. The best part? It's completely free to get started! Head over to autoblox.xyz  ",
   "scripts": {
@@ -23,6 +23,7 @@
     "framer-motion": "^10.14.0",
     "lucide-react": "^0.260.0",
     "node-fetch": "^3.3.2",
+    "postinstall": "^0.8.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",

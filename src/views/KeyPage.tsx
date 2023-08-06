@@ -1,17 +1,19 @@
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useSetRecoilState } from "recoil";
 import keyState from "@/states/keyState";
 import tabState from "@/states/tabState";
 import Layout from "@/components/Layout";
+import { useState } from "react";
 
+// Assets
 import LogoSvg from "@/assets/logo.svg";
 
 export default function Keypage() {
-  const [key, setKey] = useState("");
   const setGlobalKey = useSetRecoilState(keyState);
   const setTab = useSetRecoilState(tabState);
+
+  const [key, setKey] = useState("");
 
   return (
     <Layout>

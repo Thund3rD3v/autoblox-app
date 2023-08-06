@@ -15,7 +15,7 @@ function App() {
           key={value}
           initial={{ opacity: 0, scale: 2 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, rotateY: 360 }}
+          exit={{ opacity: 0, rotate: 180 }}
           className="text-9xl font-bold -mt-2 lead">
           {value}
         </motion.h2>

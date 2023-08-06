@@ -1,5 +1,5 @@
-import { IBloxburgCashier } from "Interfaces";
 import { Button } from "@/components/ui/button";
+import { IBloxburgCashier } from "Interfaces";
 
 interface Props {
   image: string;

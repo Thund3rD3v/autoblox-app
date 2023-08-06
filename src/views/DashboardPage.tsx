@@ -1,7 +1,7 @@
 import GameCard from "@/components/GameCard";
 import Layout from "@/components/Layout";
 
-// Images
+// Assets
 import BLOXBURG_CASHIER_THUMBNAIL from "@/assets/bloxburg/cashier/thumbnail.png";
 
 export default function DashboardPage() {

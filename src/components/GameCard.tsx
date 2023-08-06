@@ -1,5 +1,5 @@
-import tabState from "@/states/tabState";
 import { useSetRecoilState } from "recoil";
+import tabState from "@/states/tabState";
 
 interface Props {
   src: string;
