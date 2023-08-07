@@ -17,7 +17,10 @@ declare namespace api {
 
   namespace app {
     function onError(callback: (message: string) => void): void;
+
     function getVersion(): Promise<string>;
+
+    function toggleLock(value: boolean): void;
     function openUrl(url: string): void;
     function close(): void;
   }

@@ -1,7 +1,7 @@
 {
   "name": "autoblox",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "AutoBlox",
   "description": "Welcome to AutoBlox, efficient Roblox Automation solutions that takes subtlety and safety to heart. No scripts or injectors needed here, just a smooth and worry-free experience. The best part? It's completely free to get started! Head over to autoblox.xyz  ",
   "scripts": {
@@ -16,6 +16,7 @@
     "@radix-ui/react-label": "^2.0.2",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-toast": "^1.1.4",
+    "@radix-ui/react-toggle": "^1.0.3",
     "@radix-ui/react-tooltip": "^1.0.6",
     "class-variance-authority": "^0.6.1",
     "clsx": "^2.0.0",

@@ -142,6 +142,12 @@ ipcMain.handle("app/getVersion", () => {
   return app.getVersion();
 });
 
+ipcMain.on("app/toggleLock", (_, value: boolean) => {
+  if (win) {
+    win.setAlwaysOnTop(value);
+  }
+});
+
 // ------------
 // IPC END
 // ------------

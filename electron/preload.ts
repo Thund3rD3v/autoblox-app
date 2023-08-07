@@ -43,8 +43,11 @@ contextBridge.exposeInMainWorld("api", {
         callback(message);
       });
     },
+
     getVersion: () => ipcRenderer.invoke("app/getVersion"),
+
     openUrl: (url: string) => ipcRenderer.send("app/openUrl", url),
+    toggleLock: (value: boolean) => ipcRenderer.send("app/toggleLock", value),
     close: () => ipcRenderer.send("app/close"),
   },
 });
