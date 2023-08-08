@@ -1,5 +1,5 @@
 const config = {
-  website: "https://autoblox.xyz",
+  website: "https://www.autoblox.xyz",
 };
 
 export default config;
