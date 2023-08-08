@@ -145,7 +145,7 @@ ipcMain.handle("app/getVersion", () => {
 ipcMain.on("app/toggleLock", (_, value: boolean) => {
   if (win) {
     win.setVisibleOnAllWorkspaces(value);
-    win.setAlwaysOnTop(value);
+    win.setAlwaysOnTop(value, "screen-saver");
   }
 });
 
