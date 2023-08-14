@@ -152,12 +152,12 @@ class Cashier {
         await new Promise<void>((resolve) => setTimeout(resolve, 1000 * 4));
       }
     } catch (err) {
-      this.stop();
+      //this.stop();
       console.error(err);
-      dialog.showErrorBox(
-        "Internal Server Error",
-        "Uh Oh, There Was a Internal Server Error, Join Our Discord https://discord.gg/2qu8bh3x9y For Support"
-      );
+      //dialog.showErrorBox(
+      //  "Internal Server Error",
+      //  `Uh Oh, There Was a Internal Server Error, Join Our Discord https://discord.gg/2qu8bh3x9y For Support: ${err}`
+      //);
     }
   }
 
