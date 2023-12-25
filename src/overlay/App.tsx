@@ -1,27 +1,41 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { Box, Title } from "@mantine/core";
+import { useState, useEffect } from "react";
+import { toast } from "react-hot-toast";
 
 function App() {
-  const [value, setValue] = useState("3");
+  const [active, setActive] = useState(false);
 
-  api.overlay.onUpdate(setValue);
+  useEffect(() => {
+    api.app.onError((message) => {
+      toast.error(message);
+    });
 
-  return (
-    <>
-      <h1 className="text-2xl text-gray-200">Starting In</h1>
+    api.app.onSuccess((message) => {
+      toast.success(message);
+    });
 
-      <AnimatePresence mode="wait">
-        <motion.h2
-          key={value}
-          initial={{ opacity: 0, scale: 2 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, rotate: 180 }}
-          className="text-9xl font-bold -mt-2 lead">
-          {value}
-        </motion.h2>
-      </AnimatePresence>
-    </>
-  );
+    api.overlay.onUpdate(setActive);
+  }, []);
+
+  if (active) {
+    return (
+      <Box
+        px="xl"
+        py="sm"
+        sx={(theme) => {
+          return {
+            background: theme.colors.dark[8],
+            border: `1px solid ${theme.colors.dark[4]}`,
+            opacity: "95%",
+            borderRadius: theme.radius.sm,
+          };
+        }}>
+        <Title sx={{ color: "white", fontSize: "1.25rem" }}>
+          Press F To Start
+        </Title>
+      </Box>
+    );
+  }
 }
 
 export default App;

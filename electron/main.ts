@@ -11,6 +11,11 @@ import Cashier from "./bloxburg/Cashier";
 import fetch from "node-fetch";
 import config from "./config";
 import path from "node:path";
+import log from "electron-log";
+import settingsManager from "electron-settings";
+
+import "./discord";
+import { IBloxburgCashier } from "Interfaces";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { mouse } = require("@nut-tree/nut-js");
@@ -21,6 +26,7 @@ process.env.PUBLIC = app.isPackaged
   : path.join(process.env.DIST, "../public");
 
 let win: BrowserWindow | null;
+let overlay: BrowserWindow | null;
 let cashier: Cashier | null;
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
@@ -31,27 +37,50 @@ function createWindow() {
     icon: path.join("autoblox.ico"),
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
-      devTools: false,
+      devTools: true,
     },
     height: 400,
     width: 650,
     resizable: false,
+    transparent: true,
     frame: false,
 
     titleBarStyle: "hidden",
     autoHideMenuBar: true,
   });
 
-  cashier = new Cashier(win);
-
   // Disable Refreshing
-  win.removeMenu();
+  //win.removeMenu();
 
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
     // win.loadFile('dist/index.html')
     win.loadFile(path.join(process.env.DIST, "index.html"));
+  }
+}
+
+function createOverlay() {
+  overlay = new BrowserWindow({
+    frame: false,
+    resizable: false,
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, "./preload.js"),
+    },
+    transparent: true,
+    alwaysOnTop: true,
+    fullscreen: true,
+  });
+
+  overlay.setFocusable(false);
+  overlay.setIgnoreMouseEvents(true);
+
+  if (VITE_DEV_SERVER_URL) {
+    overlay.loadURL(VITE_DEV_SERVER_URL + "overlay/");
+  } else {
+    // win.loadFile('dist/index.html')
+    overlay.loadFile(path.join(process.env.DIST, "overlay/index.html"));
   }
 }
 
@@ -81,7 +110,7 @@ ipcMain.on("stop", (_, name: string) => {
 });
 
 ipcMain.on("handleGetKey", () => {
-  shell.openExternal(`${config.website}/getkey`);
+  shell.openExternal(`${config.website}/key`);
 });
 
 ipcMain.on("app/openUrl", (_, url: string) => {
@@ -90,6 +119,10 @@ ipcMain.on("app/openUrl", (_, url: string) => {
 
 ipcMain.on("app/close", () => {
   app.quit();
+});
+
+ipcMain.on("app/sendError", (_, message: string) => {
+  overlay?.webContents.send("app/error", message);
 });
 
 ipcMain.handle("getPosition", async () => {
@@ -105,14 +138,12 @@ ipcMain.handle("getPosition", async () => {
 
 ipcMain.handle("validateKey", async (_, key: string) => {
   try {
-    const res = await fetch(`${config.website}/validatekey`, {
+    const res = await fetch(`${config.website}/validate-key`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: key,
       },
-      body: JSON.stringify({
-        key: key,
-      }),
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,18 +153,18 @@ ipcMain.handle("validateKey", async (_, key: string) => {
       return true;
     }
 
-    win?.webContents.send(
+    overlay?.webContents.send(
       "app/error",
-      "Invalid Key Provided, Get a Key From autoblox.xyz/getkey"
+      "Invalid Key Provided, Get a Key From autoblox.xyz/key"
     );
 
     return false;
   } catch (err) {
-    win?.webContents.send(
+    log.error(err);
+    overlay?.webContents.send(
       "app/error",
-      "Uh Oh, There Was a Internal Server Error, Join Our Discord https://discord.gg/2qu8bh3x9y For Support"
+      "Oops! Something went wrong. Please try again later"
     );
-    console.error(err);
     return false;
   }
 });
@@ -145,9 +176,76 @@ ipcMain.handle("app/getVersion", () => {
 ipcMain.on("app/toggleLock", (_, value: boolean) => {
   if (win) {
     win.setVisibleOnAllWorkspaces(value);
-    win.setAlwaysOnTop(value, "screen-saver");
+    win.setAlwaysOnTop(value, "normal");
   }
 });
+
+// Settings
+ipcMain.handle("bloxburg/cashier/getSettings", async () => {
+  const settings = await settingsManager.get("bloxburg.cashier");
+  if (settings) {
+    return settings;
+  }
+
+  await settingsManager.set("bloxburg", {
+    cashier: {
+      topLeft: { status: "unset", position: { x: 0, y: 0 } },
+      bottomRight: { status: "unset", position: { x: 0, y: 0 } },
+      top: { status: "unset", position: { x: 0, y: 0 } },
+      oni: { status: "unset", position: { x: 0, y: 0 } },
+      che: { status: "unset", position: { x: 0, y: 0 } },
+      bef: { status: "unset", position: { x: 0, y: 0 } },
+      vef: { status: "unset", position: { x: 0, y: 0 } },
+      tom: { status: "unset", position: { x: 0, y: 0 } },
+      let: { status: "unset", position: { x: 0, y: 0 } },
+      bottom: { status: "unset", position: { x: 0, y: 0 } },
+      burger: { status: "unset", position: { x: 0, y: 0 } },
+      sides: { status: "unset", position: { x: 0, y: 0 } },
+      drinks: { status: "unset", position: { x: 0, y: 0 } },
+      item1: { status: "unset", position: { x: 0, y: 0 } },
+      item2: { status: "unset", position: { x: 0, y: 0 } },
+      item3: { status: "unset", position: { x: 0, y: 0 } },
+      size1: { status: "unset", position: { x: 0, y: 0 } },
+      size2: { status: "unset", position: { x: 0, y: 0 } },
+      size3: { status: "unset", position: { x: 0, y: 0 } },
+      done: { status: "unset", position: { x: 0, y: 0 } },
+    },
+  });
+
+  return {
+    topLeft: { status: "unset", position: { x: 0, y: 0 } },
+    bottomRight: { status: "unset", position: { x: 0, y: 0 } },
+    top: { status: "unset", position: { x: 0, y: 0 } },
+    oni: { status: "unset", position: { x: 0, y: 0 } },
+    che: { status: "unset", position: { x: 0, y: 0 } },
+    bef: { status: "unset", position: { x: 0, y: 0 } },
+    vef: { status: "unset", position: { x: 0, y: 0 } },
+    tom: { status: "unset", position: { x: 0, y: 0 } },
+    let: { status: "unset", position: { x: 0, y: 0 } },
+    bottom: { status: "unset", position: { x: 0, y: 0 } },
+    burger: { status: "unset", position: { x: 0, y: 0 } },
+    sides: { status: "unset", position: { x: 0, y: 0 } },
+    drinks: { status: "unset", position: { x: 0, y: 0 } },
+    item1: { status: "unset", position: { x: 0, y: 0 } },
+    item2: { status: "unset", position: { x: 0, y: 0 } },
+    item3: { status: "unset", position: { x: 0, y: 0 } },
+    size1: { status: "unset", position: { x: 0, y: 0 } },
+    size2: { status: "unset", position: { x: 0, y: 0 } },
+    size3: { status: "unset", position: { x: 0, y: 0 } },
+    done: { status: "unset", position: { x: 0, y: 0 } },
+  };
+});
+
+ipcMain.on(
+  "bloxburg/cashier/saveSettings",
+  async (_, settings: IBloxburgCashier) => {
+    await settingsManager.set("bloxburg", {
+      cashier: settings as never,
+    });
+
+    overlay?.webContents.send("app/success", "Successfully Saved");
+  }
+);
 
 // ------------
 // IPC END
@@ -160,7 +258,7 @@ app.on("window-all-closed", () => {
 
 // Handle Error
 process.on("uncaughtException", (error) => {
-  console.error("Exception:", error);
+  log.error("Exception:", error);
 
   dialog.showErrorBox("Unexpected Error", error.message);
   app.exit(1);
@@ -200,9 +298,14 @@ if (!gotTheLock) {
   });
 
   app.whenReady().then(() => {
-    createWindow();
-
     // updating (DONT CHANGE TO checkForUpdatesAndNotify)
     autoUpdater.checkForUpdates();
+
+    createWindow();
+    createOverlay();
+
+    if (win && overlay) {
+      cashier = new Cashier(win, overlay);
+    }
   });
 }

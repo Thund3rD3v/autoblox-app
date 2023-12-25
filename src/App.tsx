@@ -1,27 +1,28 @@
-import { useRecoilState, useSetRecoilState } from "recoil";
-import CashierPage from "@/views/bloxburg/Cashier";
-import DashboardPage from "@/views/DashboardPage";
+import { useRecoilValue } from "recoil";
+import CashierPage from "@/pages/bloxburg/Cashier";
+import DashboardPage from "@/pages/DashboardPage";
+import Keypage from "@/pages/KeyPage";
 import { AnimatePresence } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import tabState from "@/states/tabState";
-import keyState from "./states/keyState";
-import { toast } from "react-hot-toast";
-import Keypage from "@/views/KeyPage";
+import { Text } from "@mantine/core";
 
 function App() {
-  const [currentTab, setCurrentTab] = useRecoilState(tabState);
-  const setKey = useSetRecoilState(keyState);
+  const currentTab = useRecoilValue(tabState);
+  const [version, setVersion] = useState("2.0.0");
 
   useEffect(() => {
-    api.app.onError((message) => {
-      toast.error(message);
+    api.onKeyExpire(() => {
+      api.app.sendError(
+        "Your Key Has Expired, Get a Key From autoblox.xyz/getkey"
+      );
     });
 
-    api.onKeyExpire(() => {
-      toast.error("Your Key Has Expired, Get a Key From autoblox.xyz/getkey");
-      setKey("");
-      setCurrentTab("key");
-    });
+    async function getVersion() {
+      setVersion(await api.app.getVersion());
+    }
+
+    getVersion();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -41,6 +42,13 @@ function App() {
               return <CashierPage />;
           }
         })()}
+        <Text
+          size="xs"
+          weight={600}
+          color="dimmed"
+          sx={{ position: "absolute", right: 16, bottom: 10 }}>
+          v{version}
+        </Text>
       </main>
     </AnimatePresence>
   );

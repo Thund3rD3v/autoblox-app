@@ -1,9 +1,9 @@
-import { BrowserWindow, app, dialog } from "electron";
+import { app, BrowserWindow, globalShortcut } from "electron";
 import { IBloxburgCashier } from "Interfaces";
 import config from "../config";
-import fetch from "node-fetch";
 import path from "node:path";
 import fs from "fs";
+import log from "electron-log";
 
 const {
   mouse,
@@ -15,149 +15,343 @@ const {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
 } = require("@nut-tree/nut-js");
 
-const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-
 class Cashier {
-  private overlay: BrowserWindow | null = null;
   private started = false;
   win;
+  overlay;
 
-  constructor(win: BrowserWindow) {
+  constructor(win: BrowserWindow, overlay: BrowserWindow) {
     this.win = win;
+    this.overlay = overlay;
   }
 
   async start(
     key: string,
     data: {
       positions: IBloxburgCashier;
-      chanceOfMistake: number;
     }
   ) {
     if (!/^\s*$/.test(key)) {
-      if (this.overlay === null) {
-        this.overlay = new BrowserWindow({
-          frame: false,
-          resizable: false,
-          autoHideMenuBar: true,
-          webPreferences: {
-            preload: path.join(__dirname, "./preload.js"),
-          },
-          transparent: true,
-          alwaysOnTop: true,
-          fullscreen: true,
-        });
+      this.overlay.webContents.send("overlay/update", true);
 
-        this.overlay.setFocusable(false);
-        this.overlay.setIgnoreMouseEvents(true);
+      globalShortcut.register("F", async () => {
+        globalShortcut.unregister("F");
+        this.overlay?.webContents.send("overlay/update", false);
 
-        if (VITE_DEV_SERVER_URL) {
-          this.overlay.loadURL(VITE_DEV_SERVER_URL + "overlay/");
-        } else {
-          // win.loadFile('dist/index.html')
-          this.overlay.loadFile(
-            path.join(process.env.DIST, "overlay/index.html")
-          );
-        }
+        await mouse.click(Button.LEFT);
 
-        this.overlay.webContents.once("dom-ready", async () => {
-          let num = 3;
+        // Wait for popup to show
+        await new Promise<void>((resolve) => setTimeout(resolve, 500));
 
-          // eslint-disable-next-line no-constant-condition
-          while (num >= 1) {
-            this.overlay?.webContents.send("overlay/update", num);
-            num--;
-            await new Promise<void>((resolve) => setTimeout(resolve, 1000));
-          }
+        this.started = true;
+        this.main(key, data.positions);
 
-          // run final animation
-          this.overlay?.webContents.send("overlay/update", num);
-          await new Promise<void>((resolve) => setTimeout(resolve, 250));
+        this.win.webContents.send("start", "bloxburg/cashier");
 
-          this.overlay?.close();
-          this.overlay = null;
-
-          this.started = true;
-          this.main(key, data.positions, data.chanceOfMistake);
-          this.win.webContents.send("start", "bloxburg/cashier");
-        });
-      }
+        this.overlay.webContents.send(
+          "app/success",
+          "Successfully Started Automation"
+        );
+      });
     } else {
       this.win?.webContents.send("keyExpire");
     }
   }
 
-  async main(
-    key: string,
-    positions: IBloxburgCashier,
-    chanceOfMistake: number
-  ) {
+  async main(key: string, positions: IBloxburgCashier) {
     try {
       while (this.started) {
-        if (chanceOfMistake / 100 >= Math.random()) {
-          await mouse.move(straightTo(positions["fries"].position));
-          await mouse.click(Button.LEFT);
-        } else {
-          // Take Screen Shot Parms: (Left, Right, Width, Height)
-          await screen.captureRegion(
-            "autoblox-screen",
-            new Region(
-              positions.topLeft.position.x,
-              positions.topLeft.position.y,
-              positions.bottomRight.position.x - positions.topLeft.position.x,
-              positions.bottomRight.position.y - positions.topLeft.position.y
-            ),
-            FileType.PNG,
-            app.getPath("temp")
-          );
+        // Take Screen Shot Parms: (Left, Right, Width, Height)
+        await screen.captureRegion(
+          "screen1",
+          new Region(
+            positions.topLeft.position.x,
+            positions.topLeft.position.y,
+            positions.bottomRight.position.x - positions.topLeft.position.x,
+            positions.bottomRight.position.y - positions.topLeft.position.y
+          ),
+          FileType.PNG,
+          app.getPath("temp")
+        );
 
-          // Read Screen Shot
-          const bufferData = await fs.readFileSync(
-            path.join(app.getPath("temp"), "autoblox-screen.png")
-          );
+        await new Promise<void>((resolve) => setTimeout(resolve, 1000 * 5));
 
-          const body = new FormData();
-          const blob = new Blob([bufferData]);
-          body.set("key", key);
-          body.set("image", blob, "image.png");
+        await screen.captureRegion(
+          "screen2",
+          new Region(
+            positions.topLeft.position.x,
+            positions.topLeft.position.y,
+            positions.bottomRight.position.x - positions.topLeft.position.x,
+            positions.bottomRight.position.y - positions.topLeft.position.y
+          ),
+          FileType.PNG,
+          app.getPath("temp")
+        );
 
-          const res = await fetch(`${config.website}/bloxburg/cashier`, {
-            method: "POST",
-            body,
-          });
+        await new Promise<void>((resolve) => setTimeout(resolve, 1000 * 2));
 
-          if (res.status === 401) {
-            this.win?.webContents.send("keyExpire");
-            this.stop();
-            break;
+        await screen.captureRegion(
+          "screen3",
+          new Region(
+            positions.topLeft.position.x,
+            positions.topLeft.position.y,
+            positions.bottomRight.position.x - positions.topLeft.position.x,
+            positions.bottomRight.position.y - positions.topLeft.position.y
+          ),
+          FileType.PNG,
+          app.getPath("temp")
+        );
+
+        // Read Screens
+        const screen1Data = fs.readFileSync(
+          path.join(app.getPath("temp"), "screen1.png")
+        );
+
+        const screen2Data = fs.readFileSync(
+          path.join(app.getPath("temp"), "screen2.png")
+        );
+
+        const screen3Data = fs.readFileSync(
+          path.join(app.getPath("temp"), "screen3.png")
+        );
+
+        const body = new FormData();
+
+        const screen1Blob = new Blob([screen1Data], { type: "image/png" });
+        const screen2Blob = new Blob([screen2Data], { type: "image/png" });
+        const screen3Blob = new Blob([screen3Data], { type: "image/png" });
+
+        body.set("screen1", screen1Blob, "screen1.png");
+        body.set("screen2", screen2Blob, "screen2.png");
+        body.set("screen3", screen3Blob, "screen3.png");
+
+        const res = await fetch(`${config.website}/bloxburg/cashier`, {
+          method: "POST",
+          headers: {
+            Authorization: key,
+          },
+          body: body,
+        });
+
+        if (res.status === 401) {
+          this.win?.webContents.send("keyExpire");
+          this.stop();
+          break;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data: any = await res.json();
+
+        if (!data.success) {
+          this.overlay?.webContents.send("app/error", data.message);
+          this.stop();
+          break;
+        }
+
+        const orderData = data.data;
+
+        // Move to burger section
+        await mouse.move(straightTo(positions["burger"].position));
+        await mouse.click(Button.LEFT);
+
+        await new Promise<void>((resolve) => setTimeout(resolve, 500 * 1));
+
+        await mouse.move(straightTo(positions["bottom"].position));
+        await mouse.click(Button.LEFT);
+
+        if ("oni" in orderData) {
+          for (let i = 0; i < parseInt(orderData["oni"]); i++) {
+            await mouse.move(straightTo(positions["oni"].position));
+            await mouse.click(Button.LEFT);
+            await new Promise<void>((resolve) => setTimeout(resolve, 250));
           }
+        }
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const data: any = await res.json();
+        if ("che" in orderData) {
+          for (let i = 0; i < parseInt(orderData["che"]); i++) {
+            await mouse.move(straightTo(positions["che"].position));
+            await mouse.click(Button.LEFT);
+            await new Promise<void>((resolve) => setTimeout(resolve, 250));
+          }
+        }
 
-          const orders: (keyof IBloxburgCashier)[] = data.data;
+        if ("bef" in orderData) {
+          for (let i = 0; i < parseInt(orderData["bef"]); i++) {
+            await mouse.move(straightTo(positions["bef"].position));
+            await mouse.click(Button.LEFT);
+            await new Promise<void>((resolve) => setTimeout(resolve, 250));
+          }
+        }
 
-          for (const order of orders) {
-            await mouse.move(straightTo(positions[order].position));
+        if ("vef" in orderData) {
+          for (let i = 0; i < parseInt(orderData["vef"]); i++) {
+            await mouse.move(straightTo(positions["vef"].position));
+            await mouse.click(Button.LEFT);
+            await new Promise<void>((resolve) => setTimeout(resolve, 250));
+          }
+        }
+
+        if ("tom" in orderData) {
+          for (let i = 0; i < parseInt(orderData["tom"]); i++) {
+            await mouse.move(straightTo(positions["tom"].position));
+            await mouse.click(Button.LEFT);
+            await new Promise<void>((resolve) => setTimeout(resolve, 250));
+          }
+        }
+
+        if ("let" in orderData) {
+          for (let i = 0; i < parseInt(orderData["let"]); i++) {
+            await mouse.move(straightTo(positions["let"].position));
+            await mouse.click(Button.LEFT);
+            await new Promise<void>((resolve) => setTimeout(resolve, 250));
+          }
+        }
+
+        await mouse.move(straightTo(positions["top"].position));
+        await mouse.click(Button.LEFT);
+
+        // Move to sides section
+        await mouse.move(straightTo(positions["sides"].position));
+        await mouse.click(Button.LEFT);
+
+        await new Promise<void>((resolve) => setTimeout(resolve, 1000 * 1));
+
+        if ("si-fri" in orderData) {
+          await mouse.move(straightTo(positions["item1"].position));
+          await mouse.click(Button.LEFT);
+
+          if (orderData["si-fri"] == "s") {
+            await mouse.move(straightTo(positions["size1"].position));
             await mouse.click(Button.LEFT);
           }
 
-          await mouse.move(straightTo(positions["done"].position));
-          await mouse.click(Button.LEFT);
+          if (orderData["si-fri"] == "m") {
+            await mouse.move(straightTo(positions["size2"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["si-fri"] == "l") {
+            await mouse.move(straightTo(positions["size3"].position));
+            await mouse.click(Button.LEFT);
+          }
         }
 
+        if ("si-moz" in orderData) {
+          await mouse.move(straightTo(positions["item2"].position));
+          await mouse.click(Button.LEFT);
+
+          if (orderData["si-moz"] == "s") {
+            await mouse.move(straightTo(positions["size1"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["si-moz"] == "m") {
+            await mouse.move(straightTo(positions["size2"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["si-moz"] == "l") {
+            await mouse.move(straightTo(positions["size3"].position));
+            await mouse.click(Button.LEFT);
+          }
+        }
+
+        if ("si-oni" in orderData) {
+          await mouse.move(straightTo(positions["item3"].position));
+          await mouse.click(Button.LEFT);
+
+          if (orderData["si-oni"] == "s") {
+            await mouse.move(straightTo(positions["size1"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["si-oni"] == "m") {
+            await mouse.move(straightTo(positions["size2"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["si-oni"] == "l") {
+            await mouse.move(straightTo(positions["size3"].position));
+            await mouse.click(Button.LEFT);
+          }
+        }
+
+        // Move to drinks section
+        await mouse.move(straightTo(positions["drinks"].position));
+        await mouse.click(Button.LEFT);
+
+        await new Promise<void>((resolve) => setTimeout(resolve, 1000 * 1));
+
+        if ("dr-sod" in orderData) {
+          await mouse.move(straightTo(positions["item1"].position));
+          await mouse.click(Button.LEFT);
+
+          if (orderData["dr-sod"] == "s") {
+            await mouse.move(straightTo(positions["size1"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["dr-sod"] == "m") {
+            await mouse.move(straightTo(positions["size2"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["dr-sod"] == "l") {
+            await mouse.move(straightTo(positions["size3"].position));
+            await mouse.click(Button.LEFT);
+          }
+        }
+
+        if ("dr-app" in orderData) {
+          await mouse.move(straightTo(positions["item2"].position));
+          await mouse.click(Button.LEFT);
+
+          if (orderData["dr-app"] == "s") {
+            await mouse.move(straightTo(positions["size1"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["dr-app"] == "m") {
+            await mouse.move(straightTo(positions["size2"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["dr-app"] == "l") {
+            await mouse.move(straightTo(positions["size3"].position));
+            await mouse.click(Button.LEFT);
+          }
+        }
+
+        if ("dr-sha" in orderData) {
+          await mouse.move(straightTo(positions["item3"].position));
+          await mouse.click(Button.LEFT);
+
+          if (orderData["dr-sha"] == "s") {
+            await mouse.move(straightTo(positions["size1"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["dr-sha"] == "m") {
+            await mouse.move(straightTo(positions["size2"].position));
+            await mouse.click(Button.LEFT);
+          }
+
+          if (orderData["dr-sha"] == "l") {
+            await mouse.move(straightTo(positions["size3"].position));
+            await mouse.click(Button.LEFT);
+          }
+        }
+
+        // Click Done
         await mouse.move(straightTo(positions["done"].position));
         await mouse.click(Button.LEFT);
 
         // Wait 4 seconds until completing next order
-        await new Promise<void>((resolve) => setTimeout(resolve, 1000 * 4));
+        await new Promise<void>((resolve) => setTimeout(resolve, 1000 * 3));
       }
     } catch (err) {
-      //this.stop();
-      console.error(err);
-      //dialog.showErrorBox(
-      //  "Internal Server Error",
-      //  `Uh Oh, There Was a Internal Server Error, Join Our Discord https://discord.gg/2qu8bh3x9y For Support: ${err}`
-      //);
+      log.error(err);
+      this.overlay?.webContents.send("app/error", err);
     }
   }
 

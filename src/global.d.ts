@@ -12,16 +12,25 @@ declare namespace api {
   function onKeyExpire(callback: () => void): void;
 
   namespace overlay {
-    function onUpdate(callback: (value: string) => void): void;
+    function onUpdate(callback: (value: boolean) => void): void;
   }
 
   namespace app {
-    function onError(callback: (message: string) => void): void;
-
     function getVersion(): Promise<string>;
 
+    function onError(callback: (message: string) => void): void;
+    function onSuccess(callback: (message: string) => void): void;
+
+    function sendError(message: string): void;
     function toggleLock(value: boolean): void;
     function openUrl(url: string): void;
     function close(): void;
+  }
+
+  namespace bloxburg {
+    namespace cashier {
+      function getSettings(): Promise<object>;
+      function saveSettings(settings: any): void;
+    }
   }
 }

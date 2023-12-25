@@ -1,5 +1,6 @@
 import { useSetRecoilState } from "recoil";
 import tabState from "@/states/tabState";
+import { UnstyledButton, Image } from "@mantine/core";
 
 interface Props {
   src: string;
@@ -11,12 +12,16 @@ export default function GameCard({ src, alt, tab }: Props) {
   const setTab = useSetRecoilState(tabState);
 
   return (
-    <button
+    <UnstyledButton
+      sx={{
+        ":hover": {
+          opacity: "90%",
+        },
+      }}
       onClick={() => {
         setTab(tab);
-      }}
-      className="hover:opacity-75 transition-opacity duration-500">
-      <img className="rounded-lg" src={src} alt={alt} />
-    </button>
+      }}>
+      <Image radius="md" width={125} src={src} alt={alt} />
+    </UnstyledButton>
   );
 }

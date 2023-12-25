@@ -1,54 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer base {
-  :root {
-    --background: #27272a;
-    --foreground: white;
-
-    --muted: 0, 0%, 32%;
-    --muted-foreground: 0, 0%, 64%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-
-    --border: 240 5.9% 90%;
-    --input: 360 78% 62%;
-
-    --primary: 360 78% 62%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 220, 13%, 91%;
-
-    --accent: 0, 0%, 25%;
-    --accent-foreground: 0, 0%, 64%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    --ring: 355 81% 69%;
-
-    --radius: 0.5rem;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
 body {
-  background: #27272a;
-  overflow: hidden;
+  background: transparent !important;
+}
+
+#root {
+  background: rgba(24, 24, 27, 1);
+  border-radius: 0.5rem;
+  width: 100vw;
+  height: 100vh;
+  overflow: clip;
 }
 
 nav {
@@ -59,11 +18,15 @@ nav > * {
   -webkit-app-region: no-drag;
 }
 
-/* Scrollbar */
+/* Other browsers */
 *::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #18181b;
+  background-color: #373a40;
 }

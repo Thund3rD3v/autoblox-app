@@ -1,3 +1,4 @@
+import { IBloxburgCashier } from "Interfaces";
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("api", {
@@ -30,24 +31,41 @@ contextBridge.exposeInMainWorld("api", {
   },
 
   overlay: {
-    onUpdate: (callback: (value: string) => void) => {
+    onUpdate: (callback: (value: boolean) => void) => {
       ipcRenderer.on("overlay/update", (_event, value) => {
+        console.log(value);
         callback(value);
       });
     },
   },
 
   app: {
+    getVersion: () => ipcRenderer.invoke("app/getVersion"),
+
     onError: (callback: (message: string) => void) => {
       ipcRenderer.on("app/error", (_event, message) => {
         callback(message);
       });
     },
 
-    getVersion: () => ipcRenderer.invoke("app/getVersion"),
+    onSuccess: (callback: (message: string) => void) => {
+      ipcRenderer.on("app/success", (_event, message) => {
+        callback(message);
+      });
+    },
+
+    sendError: (message: string) => ipcRenderer.send("app/sendError", message),
 
     openUrl: (url: string) => ipcRenderer.send("app/openUrl", url),
     toggleLock: (value: boolean) => ipcRenderer.send("app/toggleLock", value),
     close: () => ipcRenderer.send("app/close"),
+  },
+
+  bloxburg: {
+    cashier: {
+      getSettings: () => ipcRenderer.invoke("bloxburg/cashier/getSettings"),
+      saveSettings: (settings: IBloxburgCashier) =>
+        ipcRenderer.send("bloxburg/cashier/saveSettings", settings),
+    },
   },
 });
